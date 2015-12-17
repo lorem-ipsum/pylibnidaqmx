@@ -1077,7 +1077,7 @@ class Task(TaskHandle):
             if len(argspec.args) != 4:
                 raise ValueError("Function signature should be like f(task, event_type, samples, cb_data) -> 0.")
             # TODO: use wrapper function that converts cb_data argument to given Python object
-            c_func = EveryNSamplesEventCallback_map[self.channel_type](func)
+            c_func = ctypes.CFUNCTYPE (TaskHandle, int32, uInt32, void_p)(func)
         
         self._register_every_n_samples_event_cache = c_func
 
@@ -1161,7 +1161,7 @@ class Task(TaskHandle):
             argspec = getargspec(func)
             if len(argspec.args) != 3 or argspec.defaults != (None,):
                 raise ValueError("Function signature should be like f(task, status, cb_data=None) -> 0.")
-            c_func = DoneEventCallback_map[self.channel_type](func)
+            c_func = ctypes.CFUNCTYPE (TaskHandle, int32, void_p)(func)
         self._register_done_event_cache = c_func
 
         return CALL('RegisterDoneEvent', self, uInt32 (options), c_func, cb_data)==0
@@ -1238,7 +1238,7 @@ class Task(TaskHandle):
             argspec = getargspec(func)
             if len(argspec.args) != 4:
                 raise ValueError("Function signature should be like f(task, signalID, cb_data) -> 0.")
-            c_func = SignalEventCallback_map[self.channel_type](func)
+            c_func = ctypes.CFUNCTYPE (TaskHandle, int32, void_p)(func)
         self._register_signal_event_cache = c_func
         return CALL('RegisterSignalEvent', self, signalID_val, uInt32(options), c_func, cb_data)==0
 
@@ -4418,30 +4418,6 @@ class CounterOutputTask(Task):
         channel = str(channel)
         terminal = str(terminal)
         return CALL ('SetCOPulseTerm', self, channel, terminal)==0
-
-########################################################################
-
-DoneEventCallback_map = dict(AI=ctypes.CFUNCTYPE (int32, AnalogInputTask, int32, void_p),
-                             AO=ctypes.CFUNCTYPE (int32, AnalogOutputTask, int32, void_p),
-                             DI=ctypes.CFUNCTYPE (int32, DigitalInputTask, int32, void_p),
-                             DO=ctypes.CFUNCTYPE (int32, DigitalOutputTask, int32, void_p),
-                             CI=ctypes.CFUNCTYPE (int32, CounterInputTask, int32, void_p),
-                             CO=ctypes.CFUNCTYPE (int32, CounterOutputTask, int32, void_p),
-                             )
-EveryNSamplesEventCallback_map = dict(AI=ctypes.CFUNCTYPE (int32, AnalogInputTask, int32, uInt32, void_p),
-                                      AO=ctypes.CFUNCTYPE (int32, AnalogOutputTask, int32, uInt32, void_p),
-                                      DI=ctypes.CFUNCTYPE (int32, DigitalInputTask, int32, uInt32, void_p),
-                                      DO=ctypes.CFUNCTYPE (int32, DigitalOutputTask, int32, uInt32, void_p),
-                                      CI=ctypes.CFUNCTYPE (int32, CounterInputTask, int32, uInt32, void_p),
-                                      CO=ctypes.CFUNCTYPE (int32, CounterOutputTask, int32, uInt32, void_p),
-                                      )
-SignalEventCallback_map = dict(AI=ctypes.CFUNCTYPE (int32, AnalogInputTask, int32, void_p),
-                               AO=ctypes.CFUNCTYPE (int32, AnalogOutputTask, int32, void_p),
-                               DI=ctypes.CFUNCTYPE (int32, DigitalInputTask, int32, void_p),
-                               DO=ctypes.CFUNCTYPE (int32, DigitalOutputTask, int32, void_p),
-                               CI=ctypes.CFUNCTYPE (int32, CounterInputTask, int32, void_p),
-                               CO=ctypes.CFUNCTYPE (int32, CounterOutputTask, int32, void_p),
-                               )
 
 ########################################################################
 
