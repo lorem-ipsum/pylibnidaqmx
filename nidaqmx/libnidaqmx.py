@@ -1107,7 +1107,7 @@ class Task(TaskHandle):
             if len(argspec.args) != 4:
                 raise ValueError("Function signature should be like f(task, event_type, samples, cb_data) -> 0.")
             # TODO: use wrapper function that converts cb_data argument to given Python object
-            c_func = ctypes.CFUNCTYPE (int32, uInt32, int32, uInt32, void_p)(func)
+            c_func = ctypes.CFUNCTYPE (TaskHandle, int32, uInt32, void_p)(func)
         
         self._register_every_n_samples_event_cache = c_func
 
@@ -1191,7 +1191,7 @@ class Task(TaskHandle):
             argspec = getargspec(func)
             if len(argspec.args) != 3 or argspec.defaults != (None,):
                 raise ValueError("Function signature should be like f(task, status, cb_data=None) -> 0.")
-            c_func = ctypes.CFUNCTYPE (int32, uInt32, int32, void_p)(func)
+            c_func = ctypes.CFUNCTYPE (TaskHandle, int32, void_p)(func)
         self._register_done_event_cache = c_func
 
         return CALL('RegisterDoneEvent', self, uInt32 (options), c_func, cb_data)==0
@@ -1268,7 +1268,7 @@ class Task(TaskHandle):
             argspec = getargspec(func)
             if len(argspec.args) != 4:
                 raise ValueError("Function signature should be like f(task, signalID, cb_data) -> 0.")
-            c_func = ctypes.CFUNCTYPE (int32, uInt32, int32, void_p)(func)
+            c_func = ctypes.CFUNCTYPE (TaskHandle, int32, void_p)(func)
         self._register_signal_event_cache = c_func
         return CALL('RegisterSignalEvent', self, signalID_val, uInt32(options), c_func, cb_data)==0
 
