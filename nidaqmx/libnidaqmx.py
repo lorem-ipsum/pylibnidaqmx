@@ -3668,6 +3668,80 @@ class DigitalOutputTask(DigitalTask):
 
     # NotImplemented: WriteDigitalU8, WriteDigitalU16, WriteDigitalU32, WriteDigitalScalarU32
 
+    def write_32(self, data,
+                 auto_start=True, timeout=10.0,
+                 layout='group_by_channel'):
+        """
+        Writes multiple 32-bit unsigned integer samples to a task that
+        contains one or more digital output channels. Use this format for
+        devices with up to 32 lines per port.
+
+	Note: If you configured timing for your task, your write is
+	considered a buffered write. Buffered writes require a minimum
+	buffer size of 2 samples. If you do not configure the buffer
+	size using DAQmxCfgOutputBuffer, NI-DAQmx automatically
+	configures the buffer when you configure sample timing. If you
+	attempt to write one sample for a buffered write without
+	configuring the buffer, you will receive an error.
+
+        Parameters
+        ----------
+
+        data : array
+
+          The samples to write to the task.
+
+        auto_start : bool
+
+          Specifies whether or not this function automatically starts
+          the task if you do not start it.
+
+        timeout : float
+
+          The amount of time, in seconds, to wait for this function to
+          write all the samples. The default value is 10.0 seconds. To
+          specify an infinite wait, pass -1
+          (DAQmx.Val_WaitInfinitely). This function returns an error
+          if the timeout elapses.
+
+          A value of 0 indicates to try once to write the submitted
+          samples. If this function successfully writes all submitted
+          samples, it does not return an error. Otherwise, the
+          function returns a timeout error and returns the number of
+          samples actually written.
+
+        layout : {'group_by_channel', 'group_by_scan_number'}
+
+          Specifies how the samples are arranged, either interleaved
+          or noninterleaved:
+
+            'group_by_channel' - Group by channel (non-interleaved).
+
+            'group_by_scan_number' - Group by scan number (interleaved).
+        """
+        layout_map = dict(group_by_channel = DAQmx.Val_GroupByChannel,
+                          group_by_scan_number = DAQmx.Val_GroupByScanNumber)
+        layout_val = self._get_map_value('layout', layout_map, layout)
+        samples_written = int32(0)
+
+        number_of_channels = self.get_number_of_channels()
+
+        # pylint: disable=no-member
+        if np.isscalar(data):
+            data = np.array([data], dtype = np.uint32)
+        else:
+            data = np.asarray(data, dtype = np.uint32)
+        # pylint: enable=no-member
+
+        samples_per_channel = len(data)
+
+        CALL('WriteDigitalU32', self, samples_per_channel,
+             bool32(auto_start),
+             float64(timeout), layout_val,
+             data.ctypes, ctypes.byref(samples_written), None)
+
+        return samples_written.value
+
 class CounterInputTask(Task):
 
     """Exposes NI-DAQmx counter input task to Python.
