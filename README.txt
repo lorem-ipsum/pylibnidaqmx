@@ -1,4 +1,3 @@
-
 =====================================================
 PyLibNIDAQmx - a Python wrapper to libnidaqmx library
 =====================================================
@@ -7,9 +6,13 @@ PyLibNIDAQmx - a Python wrapper to libnidaqmx library
 
   Pearu Peterson <pearu.peterson AT gmail DOT com>
 
-:Website:
+:Download:
 
-  http://pylibnidaqmx.googlecode.com/
+  https://github.com/pearu/pylibnidaqmx
+
+:Documentation:
+
+  https://sysbio.ioc.ee/download/software/pylibnidaqmx/
 
 :License:
 
@@ -20,16 +23,6 @@ History
 
  * Project published on November 5, 2009.
 
-Download
-========
-
-The latest release can be downloaded from pylibnidaqmx website.
-
-The latest development code is available via SVN. To check it out,
-run::
-
-  svn checkout http://pylibnidaqmx.googlecode.com/svn/trunk/ pylibnidaqmx-svn
-  cd pylibnidaqmx-svn
 
 Installation
 ============
@@ -62,8 +55,8 @@ Here follows an example how to generate voltage:
 >>> data = 9.95*np.sin(np.arange(1000, dtype=np.float64)*2*np.pi/1000)
 >>> task = AnalogOutputTask()
 >>> task.create_voltage_channel('Dev1/ao2', min_val=-10.0, max_val=10.0)
->>> task.configure_timing_sample_clock(rate = 1000.0)
->>> task.write(data)
+>>> task.configure_timing_sample_clock(rate=1000.0)
+>>> task.write(data, auto_start=False)
 >>> task.start()
 >>> raw_input('Generating voltage continuously. Press Enter to interrupt..')
 >>> task.stop()
@@ -75,7 +68,7 @@ and example how to measure and plot the voltage:
 >>> import numpy as np
 >>> task = AnalogInputTask()
 >>> task.create_voltage_channel('Dev1/ai16', terminal = 'rse', min_val=-10.0, max_val=10.0)
->>> task.configure_timing_sample_clock(rate = 1000.0)
+>>> task.configure_timing_sample_clock(rate=1000.0)
 >>> task.start()
 >>> data = task.read(2000, fill_mode='group_by_channel')
 >>> del task
@@ -93,7 +86,7 @@ Help and bug reports
 
 You can report bugs at the pylibnidaqmx issue tracker:
 
-  http://code.google.com/p/pylibnidaqmx/issues/list
+  https://github.com/pearu/pylibnidaqmx/issues
 
 Any comments and questions can be sent also to the authors.
 
