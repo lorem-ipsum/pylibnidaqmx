@@ -3561,7 +3561,8 @@ class DigitalOutputTask(DigitalTask):
 
     def write(self, data, 
               auto_start=True, timeout=10.0, 
-              layout='group_by_channel'):
+              layout='group_by_channel',
+              write_type='channel'):
         """
         Writes multiple samples to each digital line in a task. When
         you create your write array, each sample per channel must
@@ -3610,6 +3611,24 @@ class DigitalOutputTask(DigitalTask):
             'group_by_channel' - Group by channel (non-interleaved).
 
             'group_by_scan_number' - Group by scan number (interleaved).
+
+        write_type : {'channel', 'port'}
+
+          Specifies how data is mapped onto the channels. Either individual 
+
+            `channel` - Write to each digital line in the task, requiring
+              individual entry in data for each channel.
+            `port` - Write to the entire port, mapping the bits of a single
+              data entry to all channels. This requires data to have the
+              correct dtype of either np.uint8, np.uint16 or np.uint32.
+
+
+          Notes
+          -----
+          In case of `write_type='channel'`, `DAQmxWriteDigitalLines()` will be
+          called. In case of `write_type='port'`, `DAQmxWriteDigitalUx()` will
+          be called, with `x` depending on the `dtype` of `data` (8, 16, 32).
+
         """
         layout_map = dict(group_by_channel = DAQmx.Val_GroupByChannel,
                           group_by_scan_number = DAQmx.Val_GroupByScanNumber)
@@ -3618,16 +3637,33 @@ class DigitalOutputTask(DigitalTask):
 
         number_of_channels = self.get_number_of_channels()
 
+        if write_type == 'channel':
+            dtype = np.uint8
+            function = 'WriteDigitalLines'
+        elif write_type == 'port':
+            dtype = data.dtype
+            function_map = {
+                    np.uint8: 'DAQmxWriteDigitalU8',
+                    np.uint16: 'DAQmxWriteDigitalU16',
+                    np.uint32: 'DAQmxWriteDigitalU32'
+                    }
+            function = function_map.get(dtype)
+            if not function:
+                raise ValueError('Unknown data dtype for write_type port %s,'
+                    ' expected np.uint8, np.uint16 or np.uint32'%dtype)
+        else:
+            raise ValueError('Unknown write_type %s'%write_type)
+
         # pylint: disable=no-member
         if np.isscalar(data):
-            data = np.array([data]*number_of_channels, dtype = np.uint8)
+            data = np.array([data]*number_of_channels, dtype=dtype)
         else:
-            data = np.asarray(data, dtype = np.uint8)
+            data = np.asarray(data, dtype=dtype)
         # pylint: enable=no-member
 
         data, samples_per_channel = self._reshape_data(data, layout)
 
-        CALL('WriteDigitalLines', self, samples_per_channel,
+        CALL(function, self, samples_per_channel,
              bool32(auto_start),
              float64(timeout), layout_val,
              data.ctypes.data, ctypes.byref(samples_written), None)
@@ -3666,7 +3702,7 @@ class DigitalOutputTask(DigitalTask):
                 "output_drive", output_drive_mapping, drive_type)
             CALL("SetDOOutputDriveType", self, channel, drive_type)
 
-    # NotImplemented: WriteDigitalU8, WriteDigitalU16, WriteDigitalU32, WriteDigitalScalarU32
+    # NotImplemented: WriteDigitalScalarU32
 
     def write_32(self, data,
                  auto_start=True, timeout=10.0,
