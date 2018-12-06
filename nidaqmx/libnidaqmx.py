@@ -107,7 +107,7 @@ def _find_library_nt():
         else:
             libfile = None
 
-    return header_name, libname, libfile
+    return header_name, libname, str(libfile)
 
 def _find_library():
     if os.name == "nt":
@@ -753,6 +753,8 @@ class Task(TaskHandle):
         """
         return self._system
 
+    _taskcache = {}
+
     # pylint: disable=pointless-string-statement
     channel_type = None
     """
@@ -785,6 +787,8 @@ class Task(TaskHandle):
         self.name = buf.value
         self.sample_mode = None
         self.samples_per_channel = None
+
+        Task._taskcache[self.value] = self
 
     def _set_channel_type(self, t):
         """ Sets channel type for the task.
@@ -825,6 +829,8 @@ class Task(TaskHandle):
         """
         if self.value:
             r = libnidaqmx.DAQmxClearTask(self)
+            if self.value in Task._taskcache:
+                del Task._taskcache[self.value]
             self.value = 0
             if r:
                 warnings.warn("DAQmxClearTask failed with error code %s (%r)" % (r, error_map.get(r)))
@@ -1114,7 +1120,10 @@ class Task(TaskHandle):
             if len(argspec.args) != 4:
                 raise ValueError("Function signature should be like f(task, event_type, samples, cb_data) -> 0.")
             # TODO: use wrapper function that converts cb_data argument to given Python object
-            c_func = ctypes.CFUNCTYPE (TaskHandle, int32, uInt32, void_p)(func)
+            def fwrapper(taskid, event_type, samples, cb_data=None):
+                task = Task._taskcache[taskid]
+                return func(task, event_type, samples, cb_data)
+            c_func = ctypes.CFUNCTYPE (int32, TaskHandle, int32, uInt32, void_p)(fwrapper)
         
         self._register_every_n_samples_event_cache = c_func
 
@@ -1198,7 +1207,10 @@ class Task(TaskHandle):
             argspec = getargspec(func)
             if len(argspec.args) != 3 or argspec.defaults != (None,):
                 raise ValueError("Function signature should be like f(task, status, cb_data=None) -> 0.")
-            c_func = ctypes.CFUNCTYPE (TaskHandle, int32, void_p)(func)
+            def fwrapper(taskid, status, cb_data=None):
+                task = Task._taskcache[taskid]
+                return func(task, status, cb_data)
+            c_func = ctypes.CFUNCTYPE (int32, TaskHandle, int32, void_p)(fwrapper)
         self._register_done_event_cache = c_func
 
         return CALL('RegisterDoneEvent', self, uInt32 (options), c_func, cb_data)==0
@@ -1275,7 +1287,10 @@ class Task(TaskHandle):
             argspec = getargspec(func)
             if len(argspec.args) != 4:
                 raise ValueError("Function signature should be like f(task, signalID, cb_data) -> 0.")
-            c_func = ctypes.CFUNCTYPE (TaskHandle, int32, void_p)(func)
+            def fwrapper(taskid, signalID, cb_data=None):
+                task = Task._taskcache[taskid]
+                return func(task, signalID, cb_data)
+            c_func = ctypes.CFUNCTYPE (int32, TaskHandle, int32, void_p)(fwrapper)
         self._register_signal_event_cache = c_func
         return CALL('RegisterSignalEvent', self, signalID_val, uInt32(options), c_func, cb_data)==0
 
