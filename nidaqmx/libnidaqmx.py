@@ -3696,9 +3696,9 @@ class DigitalOutputTask(DigitalTask):
         elif write_type == 'port':
             dtype = data.dtype
             function_map = {
-                    np.uint8: 'DAQmxWriteDigitalU8',
-                    np.uint16: 'DAQmxWriteDigitalU16',
-                    np.uint32: 'DAQmxWriteDigitalU32'
+                    np.dtype(np.uint8): 'DAQmxWriteDigitalU8',
+                    np.dtype(np.uint16): 'DAQmxWriteDigitalU16',
+                    np.dtype(np.uint32): 'DAQmxWriteDigitalU32'
                     }
             function = function_map.get(dtype)
             if not function:
