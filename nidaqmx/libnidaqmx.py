@@ -21,6 +21,7 @@ import numpy as np
 import ctypes
 import ctypes.util
 import warnings
+import weakref
 from inspect import getargspec
 
 ########################################################################
@@ -747,7 +748,7 @@ class Task(TaskHandle):
         """
         return self._system
 
-    _taskcache = {}
+    _taskcache = weakref.WeakValueDictionary()
 
     # pylint: disable=pointless-string-statement
     channel_type = None
@@ -823,9 +824,6 @@ class Task(TaskHandle):
         """
         if self.value:
             r = libnidaqmx.DAQmxClearTask(self)
-            if self.value in Task._taskcache:
-                del Task._taskcache[self.value]
-            self.value = 0
             if r:
                 warnings.warn("DAQmxClearTask failed with error code %s (%r)" % (r, error_map.get(r)))
 
